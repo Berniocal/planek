@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <title>Mapař</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    :root{
+      --grid-margin: 6px;
+      --grid-border: 3px;
+      --grid-gap: 1px;
+
+      /* Nové – maximální logická šířka herní plochy */
+      --board-max-width: 600px;
+      --board-width: min(100vw, var(--board-max-width));
+
+      --cell-size: calc(
+        (var(--board-width) - 2*var(--grid-margin) - 2*var(--grid-border) - 12*var(--grid-gap))
+        / 12
+      );
+      --label-size: var(--cell-size);
+      --bg:#f3e3c4;
+      --border:#9a7b4f;
+
+      --card-w:60px;
+      --card-h:90px;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+
+    html,body{
+      height:100%;
+    }
+
+    body{
+      margin:0;
+      background:#d9c6a1;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      padding-bottom:0;
+      overflow:hidden;
+
+      /* NOVÉ – pevná základní velikost textu */
+      font-size:16px;
+    }
+
+    .wrapper{
+      background:#f8f0dd;
+      border:3px solid var(--border);
+      box-shadow:0 5px 20px rgba(0,0,0,.3);
+      width:100%;
+      max-width:600px;
+      margin:auto;
+
+      /* aby se vše vešlo na výšku displeje */
+      height:100dvh;
+      max-height:100dvh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .grid{
+      margin:var(--grid-margin);
+      display:grid;
+      grid-template-columns: var(--label-size) repeat(11, var(--cell-size));
+      grid-template-rows: var(--label-size) repeat(11, var(--cell-size));
+      background:var(--border);
+      gap:var(--grid-gap);
+    }
+
+    .label{
+      background:#e0cda1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:bold;
+      font-size:14px;
+      user-select:none;
+    }
+
+    .cell{
+      background:#fffaf0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:1.1em;
+      font-weight:bold;
+      cursor:pointer;
+      user-select:none;
+      color:#000;
+      position:relative;
+    }
+
+    .cell-emoji{
+      font-size:1.3em;
+    }
+
+    .cell-mon-letter{
+      position:absolute;
+      bottom:2px;
+      right:3px;
+      font-size:0.75em;
+      font-weight:bold;
+      color:#fff;
+    }
+
+    .cell.selected{
+      outline:3px solid #2563eb;
+      outline-offset:-2px;
+    }
+
+    .controls{
+      margin:4px var(--grid-margin) 4px;
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      align-items:center;
+      font-size:14px;
+    }
+
+    .controls button{
+      padding:8px 12px;
+      background:#f3e2bd;
+      border:1px solid var(--border);
+      cursor:pointer;
+      font-weight:bold;
+      border-radius:6px;
+      font-size:14px;
+      min-width:110px;
+    }
+
+    .controls button:hover{
+      background:#f7e8c9;
+    }
+
+    /* paleta terénů */
+    .palette{
+      margin:0 var(--grid-margin) 4px;
+      display:flex;
+      gap:4px;
+      flex-wrap:nowrap;
+      justify-content:flex-start;
+    }
+    .colorBtn{
+      width:40px;
+      height:40px;
+      border-radius:3px;
+      border:1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:bold;
+      font-size:20px;
+      cursor:pointer;
+      user-select:none;
+      color:#000;
+    }
+
+    .coins-row{
+      margin:4px var(--grid-margin) 4px;
+      display:flex;
+      gap:4px;
+      flex-wrap:nowrap;
+      justify-content:flex-start;
+    }
+    .coin{
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      background:#eab308;
+      border:2px solid transparent;
+      box-shadow:0 0 0 1px #9a7b4f55 inset;
+      cursor:pointer;
+    }
+
+    .scores-wrapper{
+      margin:4px var(--grid-margin) 8px;
+      display:flex;
+      align-items:center;
+      gap:6px;
+      flex-wrap:wrap;
+      font-size:14px;
+    }
+
+    .score-table{
+      border:2px solid #6b4b25;
+      border-radius:4px;
+      background:#f8f0dd;
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      min-width:90px;
+      max-width:110px;
+      min-height:48px;
+      overflow:hidden;
+      font-size:12px;
+    }
+
+    .score-cell{
+      border:1px solid #d0b88b;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:2px;
+      box-sizing:border-box;
+    }
+
+    .score-cell.header{
+      font-weight:bold;
+      background:#f1dfbe;
+    }
+
+    .score-cell.sum{
+      grid-row:1 / 3;
+      font-weight:bold;
+      background:#f4e7ca;
+    }
+
+    .score-cell.value{
+      background:#fffaf0;
+    }
+
+    .score-cell.editable{
+      cursor:pointer;
+    }
+
+    .score-cell.value.specialN{
+      background:#a855f7;
+      color:#fff;
+      font-size:1.1em;
+    }
+
+    .score-coin{
+      width:14px;
+      height:14px;
+      border-radius:50%;
+      background:#eab308;
+      box-shadow:0 0 0 1px #9a7b4f55 inset;
+    }
+
+    .plus-sign{
+      font-weight:bold;
+      font-size:16px;
+      padding:0 2px;
+    }
+
+    .total-box{
+      border:2px solid #6b4b25;
+      border-radius:4px;
+      min-width:60px;
+      min-height:48px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#f4e7ca;
+      font-weight:bold;
+      font-size:16px;
+    }
+
+    .score-cell input{
+      width:100%;
+      border:none;
+      outline:none;
+      background:transparent;
+      text-align:center;
+      font:inherit;
+    }
+
+    
+
+    .cards-bar{
+      margin:4px var(--grid-margin) 8px;
+      display:flex;
+      align-items:stretch;
+      justify-content:stretch;
+      gap:8px;
+    }
+
+    .season-title{
+      font-weight:bold;
+      margin-bottom:2px;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:0.04em;
+    }
+    .season-name{
+      font-weight:bold;
+      font-size:16px;
+      line-height:1.1;
+    }
+    .season-pairs{
+      font-size:12px;
+      margin-top:2px;
+      letter-spacing:0.08em;
+    }
+
+    .discard-card{
+      position:absolute;
+      inset:0.35em;
+      border-radius:6px;
+      border:2px solid #6b4b25;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      text-align:center;
+      padding:4px;
+      box-shadow:0 2px 6px rgba(0,0,0,.25);
+      background:#fef9e7;
+    }
+
+    .discard-card.hero{ background:#dbeafe; }
+    .discard-card.monster{ background:#fee2e2; }
+
+    @media (max-width:600px){
+      .scores-wrapper{
+        flex-wrap:wrap;
+      }
+      .cards-bar{
+        flex-wrap:wrap;
+      }
+    }
+
+    /* ==== MINI MŘÍŽKY PRO HRDINY ==== */
+
+    .pat-3x3, .pat-1x4{
+      display:grid;
+      gap:4px;
+      margin-top:8px;
+    }
+
+    .pat-3x3{
+      grid-template-columns: repeat(3, 1.6em);
+    }
+    .pat-1x4{
+      grid-template-columns: repeat(4, 1.6em);
+    }
+
+    .pat-cell{
+      width:1.6em;
+      height:1.6em;
+      border-radius:4px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:1.1em;
+      font-weight:bold;
+    }
+
+    .pat-cell.sword{
+      background:#6b7280;
+      color:white;
+    }
+
+    .pat-cell.star{
+      background:#d1d5db;
+      color:black;
+    }
+
+    .pat-cell.empty{
+      background:transparent;
+    }
+
+    
+
+  </style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div id="grid" class="grid"></div>
+
+  <div class="controls">
+    <button id="eraseBtn">Smazat políčko</button>
+    <button id="clearSelBtn">Zrušit výběr</button>
+    <button id="clearAllBtn">Smazat mapu</button>
+  </div>
+
+  <div class="palette">
+    <div class="colorBtn" data-letter="L" style="background:#22c55e;">🌳</div>
+    <div class="colorBtn" data-letter="D" style="background:#ef4444;">🏠</div>
+    <div class="colorBtn" data-letter="V" style="background:#3b82f6;">🌊</div>
+    <div class="colorBtn" data-letter="P" style="background:#eab308;">🌾</div>
+    <div class="colorBtn" data-letter="H" style="background:#6b7280;color:#fff;">⚔️</div>
+    <div class="colorBtn" data-letter="N" style="background:#a855f7;color:#fff;">😈</div>
+    <div class="colorBtn" data-letter="X" style="background:#000000;color:#fff;">X</div>
+    <div class="colorBtn" data-letter="A" style="background:#8B4513;color:#fff;">⛰️</div>
+    <div class="colorBtn" data-letter="*" style="background:#fffaf0;">*</div>
+  </div>
+
+  <div class="coins-row" id="coinsRow"></div>
+
+  <div class="scores-wrapper">
+    <div class="score-table" data-table="0">
+      <div class="score-cell header editable" data-table="0" data-slot="1">A</div>
+      <div class="score-cell header editable" data-table="0" data-slot="2">B</div>
+      <div class="score-cell sum" data-role="sum">0</div>
+      <div class="score-cell value editable" data-table="0" data-slot="3">
+        <div class="score-coin"></div>
+      </div>
+      <div class="score-cell value editable specialN" data-table="0" data-slot="4">😈</div>
+    </div>
+
+    <div class="plus-sign">+</div>
+
+    <div class="score-table" data-table="1">
+      <div class="score-cell header editable" data-table="1" data-slot="1">B</div>
+      <div class="score-cell header editable" data-table="1" data-slot="2">C</div>
+      <div class="score-cell sum" data-role="sum">0</div>
+      <div class="score-cell value editable" data-table="1" data-slot="3">
+        <div class="score-coin"></div>
+      </div>
+      <div class="score-cell value editable specialN" data-table="1" data-slot="4">😈</div>
+    </div>
+
+    <div class="plus-sign">+</div>
+
+    <div class="score-table" data-table="2">
+      <div class="score-cell header editable" data-table="2" data-slot="1">C</div>
+      <div class="score-cell header editable" data-table="2" data-slot="2">D</div>
+      <div class="score-cell sum" data-role="sum">0</div>
+      <div class="score-cell value editable" data-table="2" data-slot="3">
+        <div class="score-coin"></div>
+      </div>
+      <div class="score-cell value editable specialN" data-table="2" data-slot="4">😈</div>
+    </div>
+
+    <div class="plus-sign">+</div>
+
+    <div class="score-table" data-table="3">
+      <div class="score-cell header editable" data-table="3" data-slot="1">D</div>
+      <div class="score-cell header editable" data-table="3" data-slot="2">A</div>
+      <div class="score-cell sum" data-role="sum">0</div>
+      <div class="score-cell value editable" data-table="3" data-slot="3">
+        <div class="score-coin"></div>
+      </div>
+      <div class="score-cell value editable specialN" data-table="3" data-slot="4">😈</div>
+    </div>
+
+    <div class="plus-sign">=</div>
+
+    <div class="total-box" id="totalScore">0</div>
+  </div>
+
+<script>
+/* ====== MAPA / TERÉNY ====== */
+
+const letterColors = {
+  L: '#22c55e',
+  D: '#ef4444',
+  V: '#3b82f6',
+  P: '#eab308',
+  H: '#6b7280',
+  N: '#a855f7',
+  X: '#000000',
+  A: '#8B4513'
+};
+
+const ROWS = 11;
+const COLS = 11;
+const initialA = ["B2","F4","J6","D9","I10"];
+const gridEl = document.getElementById("grid");
+
+function getSymbol(letter){
+  switch(letter){
+    case 'D': return '🏠';
+    case 'V': return '🌊';
+    case 'P': return '🌾';
+    case 'L': return '🌳';
+    case 'N': return '😈';
+    case 'H': return '⚔️';
+    case 'A': return '⛰️';
+    default: return letter;
+  }
+}
+
+function addLabel(text){
+  const lbl=document.createElement("div");
+  lbl.className="label";
+  lbl.textContent=text;
+  gridEl.appendChild(lbl);
+}
+
+function createGrid(){
+  addLabel("");
+  for(let c=1;c<=COLS;c++) addLabel(c);
+
+  for(let r=0;r<ROWS;r++){
+    const rowLetter = String.fromCharCode(65+r);
+    addLabel(rowLetter);
+
+    for(let c=1;c<=COLS;c++){
+      const cell=document.createElement("div");
+      cell.className="cell";
+      cell.dataset.row=r;
+      cell.dataset.col=c;
+      const coord = rowLetter + String(c);
+
+      if(initialA.includes(coord)){
+        const letter = 'A';
+        cell.dataset.letter = letter;
+        cell.textContent = getSymbol(letter);
+        cell.style.background = letterColors[letter];
+        cell.style.color = "#fff";
+      }
+
+      cell.addEventListener("click",()=>cell.classList.toggle("selected"));
+      gridEl.appendChild(cell);
+    }
+  }
+}
+createGrid();
+
+const eraseBtn=document.getElementById("eraseBtn");
+const clearSelBtn=document.getElementById("clearSelBtn");
+const clearAllBtn=document.getElementById("clearAllBtn");
+
+function applyLetter(letter){
+  const selected=gridEl.querySelectorAll(".cell.selected");
+  if(selected.length===0) return;
+
+  if(letter==="*"){
+    selected.forEach(cell=>{
+      cell.dataset.letter = "*";
+      cell.textContent="*";
+      cell.style.background="#fffaf0";
+      cell.style.color="#000";
+      cell.classList.remove("selected");
+    });
+    return;
+  }
+
+  const color = letterColors[letter];
+  if(!color) return;
+
+  const symbol = getSymbol(letter);
+
+  selected.forEach(cell=>{
+    cell.dataset.letter = letter;
+    cell.textContent = symbol;
+    cell.style.background=color;
+    cell.style.color = (letter==="X" || letter==="H" || letter==="N" || letter==="A") ? "#fff" : "#000";
+    cell.classList.remove("selected");
+  });
+}
+
+
+/* Ovládání palety */
+document.querySelectorAll(".colorBtn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const letter = btn.dataset.letter;
+    applyLetter(letter);
+  });
+});
+
+/* Tlačítka nad mapou */
+eraseBtn.onclick = ()=>{
+  const selected = gridEl.querySelectorAll(".cell.selected");
+  selected.forEach(cell=>{
+    cell.dataset.letter = "";
+    cell.textContent = "";
+    cell.style.background = "#fffaf0";
+    cell.style.color = "#000";
+    cell.classList.remove("selected");
+  });
+};
+
+clearSelBtn.onclick = ()=>{
+  gridEl.querySelectorAll(".cell.selected")
+        .forEach(c=>c.classList.remove("selected"));
+};
+
+clearAllBtn.onclick = ()=>{
+  if(!confirm("Smazat celou mapu?")) return;
+  gridEl.querySelectorAll(".cell").forEach(c=>{
+    c.dataset.letter = "";
+    c.textContent = "";
+    c.style.background = "#fffaf0";
+    c.style.color = "#000";
+    c.classList.remove("selected");
+  });
+};
+
+
+
+/* 14 mincí */
+const coinsRow = document.getElementById("coinsRow");
+for(let i=0;i<14;i++){
+  const coin = document.createElement("div");
+  coin.className = "coin";
+  coin.dataset.state = "0";
+  coin.addEventListener("click", ()=>{
+    let s = parseInt(coin.dataset.state || "0",10);
+    s = (s + 1) % 3;
+    coin.dataset.state = String(s);
+    if(s===0){
+      coin.style.background = "#eab308";
+      coin.style.borderColor = "transparent";
+    }else if(s===1){
+      coin.style.background = "#eab308";
+      coin.style.borderColor = "#2563eb";
+    }else{
+      coin.style.background = "#9ca3af";
+      coin.style.borderColor = "transparent";
+    }
+  });
+  coinsRow.appendChild(coin);
+}
+
+/* BODOVACÍ TABULKY */
+function recalcTable(tableIndex){
+  const cells = document.querySelectorAll('.score-cell.editable[data-table="'+tableIndex+'"]');
+  let sum = 0;
+  cells.forEach(c=>{
+    const v = parseFloat(c.dataset.value);
+    if(!isNaN(v)) sum += v;
+  });
+  const sumCell = document.querySelector('.score-table[data-table="'+tableIndex+'"] .score-cell.sum');
+  if(sumCell){
+    sumCell.textContent = String(sum);
+  }
+}
+
+function recalcTotal(){
+  let total = 0;
+  document.querySelectorAll(".score-cell.sum").forEach(c=>{
+    const v = parseFloat(c.textContent.replace(",","."));
+    if(!isNaN(v)) total += v;
+  });
+  document.getElementById("totalScore").textContent = String(total);
+}
+
+function startEdit(cell){
+  if(cell.querySelector("input")) return;
+
+  const tableIndex = cell.dataset.table;
+  const current = (cell.dataset.value !== undefined) ? cell.dataset.value : "";
+
+  const prevBg = cell.style.backgroundColor;
+  const prevColor = cell.style.color;
+
+  cell.textContent = "";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.inputMode = "decimal";
+  input.value = current;
+  cell.appendChild(input);
+  input.focus();
+  input.select();
+
+  const finish = () => {
+    const valueStr = input.value.trim();
+    cell.removeChild(input);
+
+    if(valueStr === ""){
+      delete cell.dataset.value;
+      cell.textContent = "";
+      cell.style.backgroundColor = prevBg || "";
+      cell.style.color = prevColor || "";
+    }else{
+      let num = parseFloat(valueStr.replace(",","."));
+      if(isNaN(num)){
+        cell.dataset.value = "";
+        cell.textContent = valueStr;
+      }else{
+        if (cell.classList.contains("specialN")) {
+          num = -Math.abs(num);
+        }
+        cell.dataset.value = String(num);
+        cell.textContent = String(num).replace(".",",");
+        cell.style.backgroundColor = "#fffaf0";
+        cell.style.color = "#000";
+      }
+    }
+
+    recalcTable(tableIndex);
+    recalcTotal();
+  };
+
+  input.addEventListener("blur", finish);
+  input.addEventListener("keydown", e=>{
+    if(e.key === "Enter"){
+      e.preventDefault();
+      input.blur();
+    }
+  });
+}
+
+document.querySelectorAll(".score-cell.editable").forEach(cell=>{
+  cell.addEventListener("click", ()=>startEdit(cell));
+});
+
+
+/* ====== AUTO-FIT NA VÝŠKU DISPLEJE ======
+   Nastaví --board-max-width tak, aby se celá aplikace vešla na obrazovku bez zoomování. */
+(function(){
+  const root = document.documentElement;
+  const wrapper = document.querySelector(".wrapper");
+
+  function viewportH(){
+    return (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+  }
+
+  function fitOnce(){
+    if(!wrapper) return;
+
+    // Horní hranice šířky (nemá smysl větší než displej ani větší než původní limit 600px)
+    const maxW = Math.min(600, Math.floor(window.innerWidth));
+    let lo = 240;                 // bezpečné minimum, aby UI zůstalo použitelné
+    let hi = Math.max(lo, maxW);
+    let best = lo;
+
+    // Pokud se vejde i maxW, nech ho
+    root.style.setProperty("--board-max-width", hi + "px");
+    // vynucení layoutu
+    void wrapper.offsetHeight;
+
+    if(wrapper.scrollHeight <= viewportH()){
+      return;
+    }
+
+    // Binární hledání největší šířky, která se vejde na výšku
+    for(let i=0;i<14;i++){
+      const mid = Math.floor((lo + hi) / 2);
+      root.style.setProperty("--board-max-width", mid + "px");
+      void wrapper.offsetHeight;
+
+      if(wrapper.scrollHeight <= viewportH()){
+        best = mid;
+        lo = mid + 1;
+      }else{
+        hi = mid - 1;
+      }
+    }
+    root.style.setProperty("--board-max-width", best + "px");
+  }
+
+  let t = null;
+  function fitDebounced(){
+    clearTimeout(t);
+    t = setTimeout(fitOnce, 60);
+  }
+
+  window.addEventListener("load", ()=>{
+    // 2× RAF kvůli tomu, aby byly známé výšky prvků (fonty, layout)
+    requestAnimationFrame(()=>requestAnimationFrame(fitOnce));
+  });
+
+  window.addEventListener("resize", fitDebounced);
+  if(window.visualViewport){
+    window.visualViewport.addEventListener("resize", fitDebounced);
+  }
+})();
+
+
+// Pozn.: Odstraněna logika karet, scénářů, období a herního kódu – zůstává jen mapový editor.
+</script>
+
+</body>
+</html>
