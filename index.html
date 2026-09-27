@@ -321,14 +321,16 @@
       background:#fff;
       font-size:13px;
     }
-    .label-note-save{
+    .label-note-clear{
       padding:7px 9px;
-      border:1px solid #b79a6b;
+      border:1px solid #b91c1c;
       border-radius:6px;
-      background:#f3e2bd;
-      font-weight:700;
+      background:#fee2e2;
+      color:#991b1b;
+      font-weight:800;
       cursor:pointer;
     }
+    .label-note-clear:hover{background:#fecaca}
 
     @media(max-width:600px){.scores-wrapper{flex-wrap:wrap}}
   </style>
@@ -418,7 +420,7 @@
   </div>
   <div class="label-note-row">
     <input id="labelNoteInput" class="label-note-input" type="text" maxlength="24" placeholder="Poznámka pod označením">
-    <button id="labelNoteSave" class="label-note-save" type="button">Uložit</button>
+    <button id="labelNoteClear" class="label-note-clear" type="button">Smazat</button>
   </div>
 </div>
 
@@ -542,16 +544,42 @@ eraseBtn.onclick=()=>{
   gridEl.querySelectorAll('.cell.selected:not(.blocked)').forEach(cell=>{cell.dataset.letter='';cell.textContent='';cell.style.background='#fffaf0';cell.style.color='#000';cell.classList.remove('selected')});
 };
 clearSelBtn.onclick=()=>gridEl.querySelectorAll('.cell.selected').forEach(c=>c.classList.remove('selected'));
-clearAllBtn.onclick=()=>{if(confirm('Smazat celou mapu?'))loadMap(currentMap)};
 
 const labelMenu=document.getElementById('labelMenu');
 const labelMenuTitle=document.getElementById('labelMenuTitle');
 const labelMenuClose=document.getElementById('labelMenuClose');
 const labelNoteInput=document.getElementById('labelNoteInput');
-const labelNoteSave=document.getElementById('labelNoteSave');
+const labelNoteClear=document.getElementById('labelNoteClear');
 let activeLabel=null;
 
 function labelName(lbl){return lbl.dataset.labelType==='row'?'Řádek '+lbl.dataset.labelKey:'Sloupec '+lbl.dataset.labelKey}
+function saveLabelNote(){
+  if(!activeLabel)return;
+  const note=labelNoteInput.value.trim();
+  const noteEl=activeLabel.querySelector('.label-note');
+  if(note){
+    activeLabel.dataset.note=note;
+    noteEl.textContent=note;
+    activeLabel.title=labelName(activeLabel)+' – '+note;
+  }else{
+    delete activeLabel.dataset.note;
+    noteEl.textContent='';
+    activeLabel.removeAttribute('title');
+  }
+}
+function resetLabel(lbl){
+  if(!lbl)return;
+  lbl.classList.remove('circle','underline','bold');
+  delete lbl.dataset.bg;
+  delete lbl.dataset.note;
+  lbl.style.background='#e0cda1';
+  const noteEl=lbl.querySelector('.label-note');
+  if(noteEl)noteEl.textContent='';
+  lbl.removeAttribute('title');
+}
+function clearAllLabels(){
+  gridEl.querySelectorAll('.editable-label').forEach(resetLabel);
+}
 function updateLabelMenuState(){
   if(!activeLabel)return;
   document.querySelectorAll('.label-action').forEach(btn=>btn.classList.toggle('active',activeLabel.classList.contains(btn.dataset.action)));
@@ -572,12 +600,17 @@ function positionLabelMenu(lbl){
   labelMenu.style.top=Math.round(top)+'px';
 }
 function openLabelMenu(lbl){
+  if(activeLabel&&activeLabel!==lbl)saveLabelNote();
   activeLabel=lbl;
   labelMenuTitle.textContent=labelName(lbl);
   updateLabelMenuState();
   positionLabelMenu(lbl);
 }
-function closeLabelMenu(){labelMenu.classList.remove('open');activeLabel=null}
+function closeLabelMenu(){
+  saveLabelNote();
+  labelMenu.classList.remove('open');
+  activeLabel=null;
+}
 labelMenuClose.addEventListener('click',closeLabelMenu);
 
 document.querySelectorAll('.label-action').forEach(btn=>{
@@ -598,22 +631,21 @@ document.querySelectorAll('.label-color').forEach(btn=>{
   });
 });
 
-function saveLabelNote(){
-  if(!activeLabel)return;
-  const note=labelNoteInput.value.trim();
-  const noteEl=activeLabel.querySelector('.label-note');
-  if(note){
-    activeLabel.dataset.note=note;
-    noteEl.textContent=note;
-    activeLabel.title=labelName(activeLabel)+' – '+note;
-  }else{
-    delete activeLabel.dataset.note;
-    noteEl.textContent='';
-    activeLabel.removeAttribute('title');
+labelNoteInput.addEventListener('input',saveLabelNote);
+labelNoteInput.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    e.preventDefault();
+    saveLabelNote();
+    labelNoteInput.blur();
   }
-}
-labelNoteSave.addEventListener('click',saveLabelNote);
-labelNoteInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveLabelNote();labelNoteInput.blur()}});
+});
+labelNoteClear.addEventListener('click',()=>{
+  if(!activeLabel)return;
+  const lbl=activeLabel;
+  resetLabel(lbl);
+  labelMenu.classList.remove('open');
+  activeLabel=null;
+});
 
 document.addEventListener('click',e=>{
   if(!labelMenu.classList.contains('open'))return;
@@ -622,6 +654,14 @@ document.addEventListener('click',e=>{
   closeLabelMenu();
 });
 window.addEventListener('resize',()=>{if(activeLabel)positionLabelMenu(activeLabel)});
+
+clearAllBtn.onclick=()=>{
+  if(!confirm('Smazat celou mapu včetně poznámek a označení řádků a sloupců?'))return;
+  loadMap(currentMap);
+  clearAllLabels();
+  labelMenu.classList.remove('open');
+  activeLabel=null;
+};
 
 const coinsRow=document.getElementById('coinsRow');
 for(let i=0;i<14;i++){
