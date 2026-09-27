@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="cs">
 <head>
-
   <meta charset="utf-8">
   <title>Plánek</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -13,35 +12,20 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Plánek">
 
-
   <style>
     :root{
-      --grid-margin: 6px;
-      --grid-border: 3px;
-      --grid-gap: 1px;
-
-      /* Nové – maximální logická šířka herní plochy */
-      --board-max-width: 600px;
-      --board-width: min(100vw, var(--board-max-width));
-
-      --cell-size: calc(
-        (var(--board-width) - 2*var(--grid-margin) - 2*var(--grid-border) - 12*var(--grid-gap))
-        / 12
-      );
-      --label-size: var(--cell-size);
-      --bg:#f3e3c4;
+      --grid-margin:6px;
+      --grid-border:3px;
+      --grid-gap:1px;
+      --board-max-width:600px;
+      --board-width:min(100vw,var(--board-max-width));
+      --cell-size:calc((var(--board-width) - 2*var(--grid-margin) - 2*var(--grid-border) - 12*var(--grid-gap))/12);
+      --label-size:var(--cell-size);
       --border:#9a7b4f;
-
-      --card-w:60px;
-      --card-h:90px;
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
-
-    html,body{
-      height:100%;
-    }
-
+    html,body{height:100%}
     body{
       margin:0;
       background:#d9c6a1;
@@ -51,8 +35,6 @@
       align-items:flex-start;
       padding-bottom:0;
       overflow:hidden;
-
-      /* NOVÉ – pevná základní velikost textu */
       font-size:16px;
     }
 
@@ -63,8 +45,6 @@
       width:100%;
       max-width:600px;
       margin:auto;
-
-      /* aby se vše vešlo na výšku displeje */
       height:100dvh;
       max-height:100dvh;
       display:flex;
@@ -74,8 +54,8 @@
     .grid{
       margin:var(--grid-margin);
       display:grid;
-      grid-template-columns: var(--label-size) repeat(11, var(--cell-size));
-      grid-template-rows: var(--label-size) repeat(11, var(--cell-size));
+      grid-template-columns:var(--label-size) repeat(11,var(--cell-size));
+      grid-template-rows:var(--label-size) repeat(11,var(--cell-size));
       background:var(--border);
       gap:var(--grid-gap);
     }
@@ -83,11 +63,48 @@
     .label{
       background:#e0cda1;
       display:flex;
+      flex-direction:column;
       align-items:center;
       justify-content:center;
-      font-weight:bold;
+      gap:0;
       font-size:14px;
+      line-height:1;
       user-select:none;
+      position:relative;
+      min-width:0;
+      min-height:0;
+    }
+    .label.editable-label{cursor:pointer}
+    .label.editable-label:hover{filter:brightness(1.03)}
+    .label-main{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-width:1.55em;
+      min-height:1.55em;
+      padding:1px 3px;
+      border:2px solid transparent;
+      border-radius:50%;
+      font-weight:600;
+      line-height:1;
+    }
+    .label.circle .label-main{border-color:#111827}
+    .label.underline .label-main{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:2px}
+    .label.bold .label-main{font-weight:900}
+    .label-note{
+      display:block;
+      width:100%;
+      max-width:100%;
+      padding:0 2px;
+      margin-top:-1px;
+      font-size:clamp(6px,1.5vw,8px);
+      line-height:1;
+      font-weight:500;
+      text-align:center;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      color:#1f2937;
     }
 
     .cell{
@@ -102,33 +119,9 @@
       color:#000;
       position:relative;
     }
-
-    .cell-emoji{
-      font-size:1.3em;
-    }
-
-    .cell-mon-letter{
-      position:absolute;
-      bottom:2px;
-      right:3px;
-      font-size:0.75em;
-      font-weight:bold;
-      color:#fff;
-    }
-
-    .cell.selected{
-      outline:3px solid #2563eb;
-      outline-offset:-2px;
-    }
-
-    .cell.blocked{
-      background:#000;
-      cursor:not-allowed;
-    }
-
-    .cell.blocked.selected{
-      outline:none;
-    }
+    .cell.selected{outline:3px solid #2563eb;outline-offset:-2px}
+    .cell.blocked{background:#000;cursor:not-allowed}
+    .cell.blocked.selected{outline:none}
 
     .controls{
       margin:4px var(--grid-margin) 4px;
@@ -138,9 +131,7 @@
       align-items:center;
       font-size:14px;
     }
-
-    .controls button,
-    .controls select{
+    .controls button,.controls select{
       padding:8px 12px;
       background:#f3e2bd;
       border:1px solid var(--border);
@@ -150,13 +141,8 @@
       font-size:14px;
       min-width:110px;
     }
+    .controls button:hover,.controls select:hover{background:#f7e8c9}
 
-    .controls button:hover,
-    .controls select:hover{
-      background:#f7e8c9;
-    }
-
-    /* paleta terénů */
     .palette{
       margin:0 var(--grid-margin) 4px;
       display:flex;
@@ -204,21 +190,19 @@
       flex-wrap:wrap;
       font-size:14px;
     }
-
     .score-table{
       border:2px solid #6b4b25;
       border-radius:4px;
       background:#f8f0dd;
       display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(2, 1fr);
+      grid-template-columns:repeat(3,1fr);
+      grid-template-rows:repeat(2,1fr);
       min-width:90px;
       max-width:110px;
       min-height:48px;
       overflow:hidden;
       font-size:12px;
     }
-
     .score-cell{
       border:1px solid #d0b88b;
       display:flex;
@@ -227,32 +211,11 @@
       padding:2px;
       box-sizing:border-box;
     }
-
-    .score-cell.header{
-      font-weight:bold;
-      background:#f1dfbe;
-    }
-
-    .score-cell.sum{
-      grid-row:1 / 3;
-      font-weight:bold;
-      background:#f4e7ca;
-    }
-
-    .score-cell.value{
-      background:#fffaf0;
-    }
-
-    .score-cell.editable{
-      cursor:pointer;
-    }
-
-    .score-cell.value.specialN{
-      background:#a855f7;
-      color:#fff;
-      font-size:1.1em;
-    }
-
+    .score-cell.header{font-weight:bold;background:#f1dfbe}
+    .score-cell.sum{grid-row:1/3;font-weight:bold;background:#f4e7ca}
+    .score-cell.value{background:#fffaf0}
+    .score-cell.editable{cursor:pointer}
+    .score-cell.value.specialN{background:#a855f7;color:#fff;font-size:1.1em}
     .score-coin{
       width:14px;
       height:14px;
@@ -260,13 +223,7 @@
       background:#eab308;
       box-shadow:0 0 0 1px #9a7b4f55 inset;
     }
-
-    .plus-sign{
-      font-weight:bold;
-      font-size:16px;
-      padding:0 2px;
-    }
-
+    .plus-sign{font-weight:bold;font-size:16px;padding:0 2px}
     .total-box{
       border:2px solid #6b4b25;
       border-radius:4px;
@@ -279,7 +236,6 @@
       font-weight:bold;
       font-size:16px;
     }
-
     .score-cell input{
       width:100%;
       border:none;
@@ -289,103 +245,92 @@
       font:inherit;
     }
 
-
-
-    .cards-bar{
-      margin:4px var(--grid-margin) 8px;
-      display:flex;
-      align-items:stretch;
-      justify-content:stretch;
-      gap:8px;
-    }
-
-    .season-title{
-      font-weight:bold;
-      margin-bottom:2px;
-      font-size:10px;
-      text-transform:uppercase;
-      letter-spacing:0.04em;
-    }
-    .season-name{
-      font-weight:bold;
-      font-size:16px;
-      line-height:1.1;
-    }
-    .season-pairs{
-      font-size:12px;
-      margin-top:2px;
-      letter-spacing:0.08em;
-    }
-
-    .discard-card{
-      position:absolute;
-      inset:0.35em;
-      border-radius:6px;
+    .label-menu{
+      position:fixed;
+      z-index:1000;
+      width:min(270px,calc(100vw - 16px));
+      padding:10px;
       border:2px solid #6b4b25;
+      border-radius:10px;
+      background:#fffaf0;
+      box-shadow:0 8px 24px rgba(0,0,0,.28);
+      display:none;
+    }
+    .label-menu.open{display:block}
+    .label-menu-title{
       display:flex;
       align-items:center;
-      justify-content:center;
-      font-size:12px;
-      text-align:center;
-      padding:4px;
-      box-shadow:0 2px 6px rgba(0,0,0,.25);
-      background:#fef9e7;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:8px;
+      font-size:13px;
+      font-weight:800;
     }
-
-    .discard-card.hero{ background:#dbeafe; }
-    .discard-card.monster{ background:#fee2e2; }
-
-    @media (max-width:600px){
-      .scores-wrapper{
-        flex-wrap:wrap;
-      }
-      .cards-bar{
-        flex-wrap:wrap;
-      }
-    }
-
-    /* ==== MINI MŘÍŽKY PRO HRDINY ==== */
-
-    .pat-3x3, .pat-1x4{
-      display:grid;
-      gap:4px;
-      margin-top:8px;
-    }
-
-    .pat-3x3{
-      grid-template-columns: repeat(3, 1.6em);
-    }
-    .pat-1x4{
-      grid-template-columns: repeat(4, 1.6em);
-    }
-
-    .pat-cell{
-      width:1.6em;
-      height:1.6em;
-      border-radius:4px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:1.1em;
-      font-weight:bold;
-    }
-
-    .pat-cell.sword{
-      background:#6b7280;
-      color:white;
-    }
-
-    .pat-cell.star{
-      background:#d1d5db;
-      color:black;
-    }
-
-    .pat-cell.empty{
+    .label-menu-close{
+      border:0;
       background:transparent;
+      cursor:pointer;
+      font-size:20px;
+      line-height:1;
+      width:28px;
+      height:28px;
+      border-radius:6px;
+    }
+    .label-menu-close:hover{background:#f3e2bd}
+    .label-actions{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:6px;
+      margin-bottom:8px;
+    }
+    .label-action{
+      padding:7px 5px;
+      border:1px solid #b79a6b;
+      background:#f8edda;
+      border-radius:6px;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:700;
+    }
+    .label-action.active{outline:2px solid #2563eb;outline-offset:-2px;background:#e8f0ff}
+    .label-color-row{
+      display:flex;
+      align-items:center;
+      gap:7px;
+      margin-bottom:8px;
+      font-size:12px;
+      font-weight:700;
+    }
+    .label-color{
+      width:28px;
+      height:28px;
+      border-radius:50%;
+      border:2px solid #ffffff;
+      box-shadow:0 0 0 1px #7c6648;
+      cursor:pointer;
+    }
+    .label-color.active{box-shadow:0 0 0 3px #2563eb}
+    .label-color.none{background:linear-gradient(135deg,#e0cda1 46%,#991b1b 47%,#991b1b 53%,#e0cda1 54%)}
+    .label-note-row{display:flex;gap:6px;align-items:center}
+    .label-note-input{
+      flex:1;
+      min-width:0;
+      padding:7px 8px;
+      border:1px solid #b79a6b;
+      border-radius:6px;
+      background:#fff;
+      font-size:13px;
+    }
+    .label-note-save{
+      padding:7px 9px;
+      border:1px solid #b79a6b;
+      border-radius:6px;
+      background:#f3e2bd;
+      font-weight:700;
+      cursor:pointer;
     }
 
-
-
+    @media(max-width:600px){.scores-wrapper{flex-wrap:wrap}}
   </style>
 </head>
 <body>
@@ -410,7 +355,7 @@
     <div class="colorBtn" data-letter="P" style="background:#eab308;">🌾</div>
     <div class="colorBtn" data-letter="H" style="background:#6b7280;color:#fff;">⚔️</div>
     <div class="colorBtn" data-letter="N" style="background:#a855f7;color:#fff;">😈</div>
-    <div class="colorBtn" data-letter="X" style="background:#000000;color:#fff;">X</div>
+    <div class="colorBtn" data-letter="X" style="background:#000;color:#fff;">X</div>
     <div class="colorBtn" data-letter="A" style="background:#8B4513;color:#fff;">⛰️</div>
     <div class="colorBtn" data-letter="*" style="background:#fffaf0;">*</div>
   </div>
@@ -422,424 +367,356 @@
       <div class="score-cell header editable" data-table="0" data-slot="1">A</div>
       <div class="score-cell header editable" data-table="0" data-slot="2">B</div>
       <div class="score-cell sum" data-role="sum">0</div>
-      <div class="score-cell value editable" data-table="0" data-slot="3">
-        <div class="score-coin"></div>
-      </div>
+      <div class="score-cell value editable" data-table="0" data-slot="3"><div class="score-coin"></div></div>
       <div class="score-cell value editable specialN" data-table="0" data-slot="4">😈</div>
     </div>
-
     <div class="plus-sign">+</div>
-
     <div class="score-table" data-table="1">
       <div class="score-cell header editable" data-table="1" data-slot="1">B</div>
       <div class="score-cell header editable" data-table="1" data-slot="2">C</div>
       <div class="score-cell sum" data-role="sum">0</div>
-      <div class="score-cell value editable" data-table="1" data-slot="3">
-        <div class="score-coin"></div>
-      </div>
+      <div class="score-cell value editable" data-table="1" data-slot="3"><div class="score-coin"></div></div>
       <div class="score-cell value editable specialN" data-table="1" data-slot="4">😈</div>
     </div>
-
     <div class="plus-sign">+</div>
-
     <div class="score-table" data-table="2">
       <div class="score-cell header editable" data-table="2" data-slot="1">C</div>
       <div class="score-cell header editable" data-table="2" data-slot="2">D</div>
       <div class="score-cell sum" data-role="sum">0</div>
-      <div class="score-cell value editable" data-table="2" data-slot="3">
-        <div class="score-coin"></div>
-      </div>
+      <div class="score-cell value editable" data-table="2" data-slot="3"><div class="score-coin"></div></div>
       <div class="score-cell value editable specialN" data-table="2" data-slot="4">😈</div>
     </div>
-
     <div class="plus-sign">+</div>
-
     <div class="score-table" data-table="3">
       <div class="score-cell header editable" data-table="3" data-slot="1">D</div>
       <div class="score-cell header editable" data-table="3" data-slot="2">A</div>
       <div class="score-cell sum" data-role="sum">0</div>
-      <div class="score-cell value editable" data-table="3" data-slot="3">
-        <div class="score-coin"></div>
-      </div>
+      <div class="score-cell value editable" data-table="3" data-slot="3"><div class="score-coin"></div></div>
       <div class="score-cell value editable specialN" data-table="3" data-slot="4">😈</div>
     </div>
-
     <div class="plus-sign">=</div>
-
     <div class="total-box" id="totalScore">0</div>
   </div>
+</div>
+
+<div id="labelMenu" class="label-menu" role="dialog" aria-label="Označení řádku nebo sloupce">
+  <div class="label-menu-title">
+    <span id="labelMenuTitle">Označení</span>
+    <button id="labelMenuClose" class="label-menu-close" type="button" aria-label="Zavřít">×</button>
+  </div>
+  <div class="label-actions">
+    <button class="label-action" data-action="circle" type="button">◯ Kroužek</button>
+    <button class="label-action" data-action="underline" type="button"><u>Podtržení</u></button>
+    <button class="label-action" data-action="bold" type="button"><strong>Tučné</strong></button>
+  </div>
+  <div class="label-color-row">
+    <span>Pozadí:</span>
+    <button class="label-color none" data-bg="" type="button" title="Bez barvy" aria-label="Bez barvy"></button>
+    <button class="label-color" data-bg="#86efac" type="button" title="Zelená" aria-label="Zelená" style="background:#86efac"></button>
+    <button class="label-color" data-bg="#93c5fd" type="button" title="Modrá" aria-label="Modrá" style="background:#93c5fd"></button>
+    <button class="label-color" data-bg="#fca5a5" type="button" title="Červená" aria-label="Červená" style="background:#fca5a5"></button>
+  </div>
+  <div class="label-note-row">
+    <input id="labelNoteInput" class="label-note-input" type="text" maxlength="24" placeholder="Poznámka pod označením">
+    <button id="labelNoteSave" class="label-note-save" type="button">Uložit</button>
+  </div>
+</div>
 
 <script>
-/* ====== MAPA / TERÉNY ====== */
-
-const letterColors = {
-  L: '#22c55e',
-  D: '#ef4444',
-  V: '#3b82f6',
-  P: '#eab308',
-  H: '#6b7280',
-  N: '#a855f7',
-  X: '#000000',
-  A: '#8B4513'
+const letterColors={L:'#22c55e',D:'#ef4444',V:'#3b82f6',P:'#eab308',H:'#6b7280',N:'#a855f7',X:'#000000',A:'#8B4513'};
+const ROWS=11;
+const COLS=11;
+const MAPS={
+  '1':{mountains:['B2','F4','J6','D9','I10'],blocked:[]},
+  '2':{mountains:['D4','I3','F7','I10','B10'],blocked:['B2','C2','J1','J2','G10','F10','F11']}
 };
-
-const ROWS = 11;
-const COLS = 11;
-const MAPS = {
-  "1": {
-    mountains: ["B2","F4","J6","D9","I10"],
-    blocked: []
-  },
-  "2": {
-    mountains: ["D4","I3","F7","I10","B10"],
-    blocked: ["B2","C2","J1","J2","G10","F10","F11"]
-  }
-};
-let currentMap = "1";
-const gridEl = document.getElementById("grid");
+let currentMap='1';
+const gridEl=document.getElementById('grid');
 
 function getSymbol(letter){
   switch(letter){
-    case 'D': return '🏠';
-    case 'V': return '🌊';
-    case 'P': return '🌾';
-    case 'L': return '🌳';
-    case 'N': return '😈';
-    case 'H': return '⚔️';
-    case 'A': return '⛰️';
-    default: return letter;
+    case'D':return'🏠';case'V':return'🌊';case'P':return'🌾';case'L':return'🌳';case'N':return'😈';case'H':return'⚔️';case'A':return'⛰️';default:return letter;
   }
 }
 
-function addLabel(text){
-  const lbl=document.createElement("div");
-  lbl.className="label";
-  lbl.textContent=text;
+function addLabel(text,type,key){
+  const lbl=document.createElement('div');
+  lbl.className='label';
+  if(text!==''){
+    lbl.classList.add('editable-label');
+    lbl.dataset.labelType=type;
+    lbl.dataset.labelKey=key;
+    const main=document.createElement('span');
+    main.className='label-main';
+    main.textContent=text;
+    const note=document.createElement('span');
+    note.className='label-note';
+    lbl.append(main,note);
+    lbl.addEventListener('click',e=>{e.stopPropagation();openLabelMenu(lbl)});
+  }
   gridEl.appendChild(lbl);
 }
 
 function createGrid(){
-  addLabel("");
-  for(let c=1;c<=COLS;c++) addLabel(c);
-
+  addLabel('','','');
+  for(let c=1;c<=COLS;c++)addLabel(String(c),'col',String(c));
   for(let r=0;r<ROWS;r++){
-    const rowLetter = String.fromCharCode(65+r);
-    addLabel(rowLetter);
-
+    const rowLetter=String.fromCharCode(65+r);
+    addLabel(rowLetter,'row',rowLetter);
     for(let c=1;c<=COLS;c++){
-      const cell=document.createElement("div");
-      cell.className="cell";
+      const cell=document.createElement('div');
+      cell.className='cell';
       cell.dataset.row=r;
       cell.dataset.col=c;
-      cell.dataset.coord = rowLetter + String(c);
-
-      cell.addEventListener("click",()=>{
-        if(cell.classList.contains("blocked")) return;
-        cell.classList.toggle("selected");
-      });
+      cell.dataset.coord=rowLetter+String(c);
+      cell.addEventListener('click',()=>{if(cell.classList.contains('blocked'))return;cell.classList.toggle('selected')});
       gridEl.appendChild(cell);
     }
   }
 }
 createGrid();
 
-const mapSelect=document.getElementById("mapSelect");
-const eraseBtn=document.getElementById("eraseBtn");
-const clearSelBtn=document.getElementById("clearSelBtn");
-const clearAllBtn=document.getElementById("clearAllBtn");
+const mapSelect=document.getElementById('mapSelect');
+const eraseBtn=document.getElementById('eraseBtn');
+const clearSelBtn=document.getElementById('clearSelBtn');
+const clearAllBtn=document.getElementById('clearAllBtn');
 
 function resetCell(cell){
   delete cell.dataset.letter;
   delete cell.dataset.blocked;
-  cell.textContent = "";
-  cell.style.background = "#fffaf0";
-  cell.style.color = "#000";
-  cell.classList.remove("selected", "blocked");
-  cell.removeAttribute("title");
-  cell.removeAttribute("aria-label");
+  cell.textContent='';
+  cell.style.background='#fffaf0';
+  cell.style.color='#000';
+  cell.classList.remove('selected','blocked');
+  cell.removeAttribute('title');
+  cell.removeAttribute('aria-label');
 }
-
-function getCell(coord){
-  return gridEl.querySelector('.cell[data-coord="'+coord+'"]');
-}
-
+function getCell(coord){return gridEl.querySelector('.cell[data-coord="'+coord+'"]')}
 function loadMap(mapId){
-  const preset = MAPS[mapId] || MAPS["1"];
-  currentMap = MAPS[mapId] ? mapId : "1";
-
-  gridEl.querySelectorAll(".cell").forEach(resetCell);
-
+  const preset=MAPS[mapId]||MAPS['1'];
+  currentMap=MAPS[mapId]?mapId:'1';
+  gridEl.querySelectorAll('.cell').forEach(resetCell);
   preset.mountains.forEach(coord=>{
-    const cell = getCell(coord);
-    if(!cell) return;
-    const letter = 'A';
-    cell.dataset.letter = letter;
-    cell.textContent = getSymbol(letter);
-    cell.style.background = letterColors[letter];
-    cell.style.color = "#fff";
+    const cell=getCell(coord);if(!cell)return;
+    cell.dataset.letter='A';
+    cell.textContent=getSymbol('A');
+    cell.style.background=letterColors.A;
+    cell.style.color='#fff';
   });
-
   preset.blocked.forEach(coord=>{
-    const cell = getCell(coord);
-    if(!cell) return;
+    const cell=getCell(coord);if(!cell)return;
     delete cell.dataset.letter;
-    cell.dataset.blocked = "1";
-    cell.textContent = "";
-    cell.style.background = "#000";
-    cell.style.color = "#fff";
-    cell.classList.add("blocked");
-    cell.title = "Propast – " + coord;
-    cell.setAttribute("aria-label", "Propast " + coord);
+    cell.dataset.blocked='1';
+    cell.textContent='';
+    cell.style.background='#000';
+    cell.style.color='#fff';
+    cell.classList.add('blocked');
+    cell.title='Propast – '+coord;
+    cell.setAttribute('aria-label','Propast '+coord);
   });
-
-  mapSelect.value = currentMap;
+  mapSelect.value=currentMap;
 }
-
-mapSelect.addEventListener("change", ()=>loadMap(mapSelect.value));
+mapSelect.addEventListener('change',()=>loadMap(mapSelect.value));
 loadMap(currentMap);
 
 function applyLetter(letter){
-  const selected=gridEl.querySelectorAll(".cell.selected:not(.blocked)");
-  if(selected.length===0) return;
-
-  if(letter==="*"){
-    selected.forEach(cell=>{
-      cell.dataset.letter = "*";
-      cell.textContent="*";
-      cell.style.background="#fffaf0";
-      cell.style.color="#000";
-      cell.classList.remove("selected");
-    });
+  const selected=gridEl.querySelectorAll('.cell.selected:not(.blocked)');
+  if(selected.length===0)return;
+  if(letter==='*'){
+    selected.forEach(cell=>{cell.dataset.letter='*';cell.textContent='*';cell.style.background='#fffaf0';cell.style.color='#000';cell.classList.remove('selected')});
     return;
   }
-
-  const color = letterColors[letter];
-  if(!color) return;
-
-  const symbol = getSymbol(letter);
-
+  const color=letterColors[letter];if(!color)return;
+  const symbol=getSymbol(letter);
   selected.forEach(cell=>{
-    cell.dataset.letter = letter;
-    cell.textContent = symbol;
+    cell.dataset.letter=letter;
+    cell.textContent=symbol;
     cell.style.background=color;
-    cell.style.color = (letter==="X" || letter==="H" || letter==="N" || letter==="A") ? "#fff" : "#000";
-    cell.classList.remove("selected");
+    cell.style.color=(letter==='X'||letter==='H'||letter==='N'||letter==='A')?'#fff':'#000';
+    cell.classList.remove('selected');
   });
 }
 
+document.querySelectorAll('.colorBtn').forEach(btn=>btn.addEventListener('click',()=>applyLetter(btn.dataset.letter)));
+eraseBtn.onclick=()=>{
+  gridEl.querySelectorAll('.cell.selected:not(.blocked)').forEach(cell=>{cell.dataset.letter='';cell.textContent='';cell.style.background='#fffaf0';cell.style.color='#000';cell.classList.remove('selected')});
+};
+clearSelBtn.onclick=()=>gridEl.querySelectorAll('.cell.selected').forEach(c=>c.classList.remove('selected'));
+clearAllBtn.onclick=()=>{if(confirm('Smazat celou mapu?'))loadMap(currentMap)};
 
-/* Ovládání palety */
-document.querySelectorAll(".colorBtn").forEach(btn=>{
-  btn.addEventListener("click", ()=>{
-    const letter = btn.dataset.letter;
-    applyLetter(letter);
+const labelMenu=document.getElementById('labelMenu');
+const labelMenuTitle=document.getElementById('labelMenuTitle');
+const labelMenuClose=document.getElementById('labelMenuClose');
+const labelNoteInput=document.getElementById('labelNoteInput');
+const labelNoteSave=document.getElementById('labelNoteSave');
+let activeLabel=null;
+
+function labelName(lbl){return lbl.dataset.labelType==='row'?'Řádek '+lbl.dataset.labelKey:'Sloupec '+lbl.dataset.labelKey}
+function updateLabelMenuState(){
+  if(!activeLabel)return;
+  document.querySelectorAll('.label-action').forEach(btn=>btn.classList.toggle('active',activeLabel.classList.contains(btn.dataset.action)));
+  const currentBg=activeLabel.dataset.bg||'';
+  document.querySelectorAll('.label-color').forEach(btn=>btn.classList.toggle('active',(btn.dataset.bg||'')===currentBg));
+  labelNoteInput.value=activeLabel.dataset.note||'';
+}
+function positionLabelMenu(lbl){
+  const rect=lbl.getBoundingClientRect();
+  labelMenu.classList.add('open');
+  const menuRect=labelMenu.getBoundingClientRect();
+  let left=rect.left+rect.width/2-menuRect.width/2;
+  left=Math.max(8,Math.min(left,window.innerWidth-menuRect.width-8));
+  let top=rect.bottom+6;
+  if(top+menuRect.height>window.innerHeight-8)top=rect.top-menuRect.height-6;
+  top=Math.max(8,top);
+  labelMenu.style.left=Math.round(left)+'px';
+  labelMenu.style.top=Math.round(top)+'px';
+}
+function openLabelMenu(lbl){
+  activeLabel=lbl;
+  labelMenuTitle.textContent=labelName(lbl);
+  updateLabelMenuState();
+  positionLabelMenu(lbl);
+}
+function closeLabelMenu(){labelMenu.classList.remove('open');activeLabel=null}
+labelMenuClose.addEventListener('click',closeLabelMenu);
+
+document.querySelectorAll('.label-action').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    if(!activeLabel)return;
+    activeLabel.classList.toggle(btn.dataset.action);
+    updateLabelMenuState();
   });
 });
 
-/* Tlačítka nad mapou */
-eraseBtn.onclick = ()=>{
-  const selected = gridEl.querySelectorAll(".cell.selected:not(.blocked)");
-  selected.forEach(cell=>{
-    cell.dataset.letter = "";
-    cell.textContent = "";
-    cell.style.background = "#fffaf0";
-    cell.style.color = "#000";
-    cell.classList.remove("selected");
+document.querySelectorAll('.label-color').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    if(!activeLabel)return;
+    const bg=btn.dataset.bg||'';
+    if(bg){activeLabel.dataset.bg=bg;activeLabel.style.background=bg}
+    else{delete activeLabel.dataset.bg;activeLabel.style.background='#e0cda1'}
+    updateLabelMenuState();
   });
-};
+});
 
-clearSelBtn.onclick = ()=>{
-  gridEl.querySelectorAll(".cell.selected")
-        .forEach(c=>c.classList.remove("selected"));
-};
+function saveLabelNote(){
+  if(!activeLabel)return;
+  const note=labelNoteInput.value.trim();
+  const noteEl=activeLabel.querySelector('.label-note');
+  if(note){
+    activeLabel.dataset.note=note;
+    noteEl.textContent=note;
+    activeLabel.title=labelName(activeLabel)+' – '+note;
+  }else{
+    delete activeLabel.dataset.note;
+    noteEl.textContent='';
+    activeLabel.removeAttribute('title');
+  }
+}
+labelNoteSave.addEventListener('click',saveLabelNote);
+labelNoteInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveLabelNote();labelNoteInput.blur()}});
 
-clearAllBtn.onclick = ()=>{
-  if(!confirm("Smazat celou mapu?")) return;
-  loadMap(currentMap);
-};
+document.addEventListener('click',e=>{
+  if(!labelMenu.classList.contains('open'))return;
+  if(labelMenu.contains(e.target))return;
+  if(e.target.closest('.editable-label'))return;
+  closeLabelMenu();
+});
+window.addEventListener('resize',()=>{if(activeLabel)positionLabelMenu(activeLabel)});
 
-
-
-/* 14 mincí */
-const coinsRow = document.getElementById("coinsRow");
+const coinsRow=document.getElementById('coinsRow');
 for(let i=0;i<14;i++){
-  const coin = document.createElement("div");
-  coin.className = "coin";
-  coin.dataset.state = "0";
-  coin.addEventListener("click", ()=>{
-    let s = parseInt(coin.dataset.state || "0",10);
-    s = (s + 1) % 3;
-    coin.dataset.state = String(s);
-    if(s===0){
-      coin.style.background = "#eab308";
-      coin.style.borderColor = "transparent";
-    }else if(s===1){
-      coin.style.background = "#eab308";
-      coin.style.borderColor = "#2563eb";
-    }else{
-      coin.style.background = "#9ca3af";
-      coin.style.borderColor = "transparent";
-    }
+  const coin=document.createElement('div');
+  coin.className='coin';
+  coin.dataset.state='0';
+  coin.addEventListener('click',()=>{
+    let s=parseInt(coin.dataset.state||'0',10);
+    s=(s+1)%3;
+    coin.dataset.state=String(s);
+    if(s===0){coin.style.background='#eab308';coin.style.borderColor='transparent'}
+    else if(s===1){coin.style.background='#eab308';coin.style.borderColor='#2563eb'}
+    else{coin.style.background='#9ca3af';coin.style.borderColor='transparent'}
   });
   coinsRow.appendChild(coin);
 }
 
-/* BODOVACÍ TABULKY */
 function recalcTable(tableIndex){
-  const cells = document.querySelectorAll('.score-cell.editable[data-table="'+tableIndex+'"]');
-  let sum = 0;
-  cells.forEach(c=>{
-    const v = parseFloat(c.dataset.value);
-    if(!isNaN(v)) sum += v;
-  });
-  const sumCell = document.querySelector('.score-table[data-table="'+tableIndex+'"] .score-cell.sum');
-  if(sumCell){
-    sumCell.textContent = String(sum);
-  }
+  const cells=document.querySelectorAll('.score-cell.editable[data-table="'+tableIndex+'"]');
+  let sum=0;
+  cells.forEach(c=>{const v=parseFloat(c.dataset.value);if(!isNaN(v))sum+=v});
+  const sumCell=document.querySelector('.score-table[data-table="'+tableIndex+'"] .score-cell.sum');
+  if(sumCell)sumCell.textContent=String(sum);
 }
-
 function recalcTotal(){
-  let total = 0;
-  document.querySelectorAll(".score-cell.sum").forEach(c=>{
-    const v = parseFloat(c.textContent.replace(",","."));
-    if(!isNaN(v)) total += v;
-  });
-  document.getElementById("totalScore").textContent = String(total);
+  let total=0;
+  document.querySelectorAll('.score-cell.sum').forEach(c=>{const v=parseFloat(c.textContent.replace(',','.'));if(!isNaN(v))total+=v});
+  document.getElementById('totalScore').textContent=String(total);
 }
-
 function startEdit(cell){
-  if(cell.querySelector("input")) return;
-
-  const tableIndex = cell.dataset.table;
-  const current = (cell.dataset.value !== undefined) ? cell.dataset.value : "";
-
-  const prevBg = cell.style.backgroundColor;
-  const prevColor = cell.style.color;
-
-  cell.textContent = "";
-  const input = document.createElement("input");
-  input.type = "text";
-  input.inputMode = "decimal";
-  input.value = current;
-  cell.appendChild(input);
-  input.focus();
-  input.select();
-
-  const finish = () => {
-    const valueStr = input.value.trim();
+  if(cell.querySelector('input'))return;
+  const tableIndex=cell.dataset.table;
+  const current=(cell.dataset.value!==undefined)?cell.dataset.value:'';
+  const prevBg=cell.style.backgroundColor;
+  const prevColor=cell.style.color;
+  cell.textContent='';
+  const input=document.createElement('input');
+  input.type='text';input.inputMode='decimal';input.value=current;
+  cell.appendChild(input);input.focus();input.select();
+  const finish=()=>{
+    const valueStr=input.value.trim();
+    if(!input.isConnected)return;
     cell.removeChild(input);
-
-    if(valueStr === ""){
+    if(valueStr===''){
       delete cell.dataset.value;
-      cell.textContent = "";
-      cell.style.backgroundColor = prevBg || "";
-      cell.style.color = prevColor || "";
+      cell.textContent='';
+      cell.style.backgroundColor=prevBg||'';
+      cell.style.color=prevColor||'';
     }else{
-      let num = parseFloat(valueStr.replace(",","."));
-      if(isNaN(num)){
-        cell.dataset.value = "";
-        cell.textContent = valueStr;
-      }else{
-        if (cell.classList.contains("specialN")) {
-          num = -Math.abs(num);
-        }
-        cell.dataset.value = String(num);
-        cell.textContent = String(num).replace(".",",");
-        cell.style.backgroundColor = "#fffaf0";
-        cell.style.color = "#000";
+      let num=parseFloat(valueStr.replace(',','.'));
+      if(isNaN(num)){cell.dataset.value='';cell.textContent=valueStr}
+      else{
+        if(cell.classList.contains('specialN'))num=-Math.abs(num);
+        cell.dataset.value=String(num);
+        cell.textContent=String(num).replace('.',',');
+        cell.style.backgroundColor='#fffaf0';
+        cell.style.color='#000';
       }
     }
-
-    recalcTable(tableIndex);
-    recalcTotal();
+    recalcTable(tableIndex);recalcTotal();
   };
-
-  input.addEventListener("blur", finish);
-  input.addEventListener("keydown", e=>{
-    if(e.key === "Enter"){
-      e.preventDefault();
-      input.blur();
-    }
-  });
+  input.addEventListener('blur',finish);
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();input.blur()}});
 }
+document.querySelectorAll('.score-cell.editable').forEach(cell=>cell.addEventListener('click',()=>startEdit(cell)));
 
-document.querySelectorAll(".score-cell.editable").forEach(cell=>{
-  cell.addEventListener("click", ()=>startEdit(cell));
-});
-
-
-/* ====== AUTO-FIT NA VÝŠKU DISPLEJE ======
-   Nastaví --board-max-width tak, aby se celá aplikace vešla na obrazovku bez zoomování. */
 (function(){
-  const root = document.documentElement;
-  const wrapper = document.querySelector(".wrapper");
-
-  function viewportH(){
-    return (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
-  }
-
+  const root=document.documentElement;
+  const wrapper=document.querySelector('.wrapper');
+  function viewportH(){return(window.visualViewport&&window.visualViewport.height)?window.visualViewport.height:window.innerHeight}
   function fitOnce(){
-    if(!wrapper) return;
-
-    // Horní hranice šířky (nemá smysl větší než displej ani větší než původní limit 600px)
-    const maxW = Math.min(600, Math.floor(window.innerWidth));
-    let lo = 240;                 // bezpečné minimum, aby UI zůstalo použitelné
-    let hi = Math.max(lo, maxW);
-    let best = lo;
-
-    // Pokud se vejde i maxW, nech ho
-    root.style.setProperty("--board-max-width", hi + "px");
-    // vynucení layoutu
+    if(!wrapper)return;
+    const maxW=Math.min(600,Math.floor(window.innerWidth));
+    let lo=240,hi=Math.max(lo,maxW),best=lo;
+    root.style.setProperty('--board-max-width',hi+'px');
     void wrapper.offsetHeight;
-
-    if(wrapper.scrollHeight <= viewportH()){
-      return;
-    }
-
-    // Binární hledání největší šířky, která se vejde na výšku
+    if(wrapper.scrollHeight<=viewportH())return;
     for(let i=0;i<14;i++){
-      const mid = Math.floor((lo + hi) / 2);
-      root.style.setProperty("--board-max-width", mid + "px");
+      const mid=Math.floor((lo+hi)/2);
+      root.style.setProperty('--board-max-width',mid+'px');
       void wrapper.offsetHeight;
-
-      if(wrapper.scrollHeight <= viewportH()){
-        best = mid;
-        lo = mid + 1;
-      }else{
-        hi = mid - 1;
-      }
+      if(wrapper.scrollHeight<=viewportH()){best=mid;lo=mid+1}else hi=mid-1;
     }
-    root.style.setProperty("--board-max-width", best + "px");
+    root.style.setProperty('--board-max-width',best+'px');
   }
-
-  let t = null;
-  function fitDebounced(){
-    clearTimeout(t);
-    t = setTimeout(fitOnce, 60);
-  }
-
-  window.addEventListener("load", ()=>{
-    // 2× RAF kvůli tomu, aby byly známé výšky prvků (fonty, layout)
-    requestAnimationFrame(()=>requestAnimationFrame(fitOnce));
-  });
-
-  window.addEventListener("resize", fitDebounced);
-  if(window.visualViewport){
-    window.visualViewport.addEventListener("resize", fitDebounced);
-  }
+  let t=null;
+  function fitDebounced(){clearTimeout(t);t=setTimeout(fitOnce,60)}
+  window.addEventListener('load',()=>requestAnimationFrame(()=>requestAnimationFrame(fitOnce)));
+  window.addEventListener('resize',fitDebounced);
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',fitDebounced);
 })();
 
-
-// Pozn.: Odstraněna logika karet, scénářů, období a herního kódu – zůstává jen mapový editor.
-
-// ====== PWA: registrace Service Workeru ======
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(()=>{});
-  });
+if('serviceWorker'in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})});
 }
-
 </script>
-
 </body>
 </html>
