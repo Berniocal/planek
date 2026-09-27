@@ -121,6 +121,15 @@
       outline-offset:-2px;
     }
 
+    .cell.blocked{
+      background:#000;
+      cursor:not-allowed;
+    }
+
+    .cell.blocked.selected{
+      outline:none;
+    }
+
     .controls{
       margin:4px var(--grid-margin) 4px;
       display:flex;
@@ -130,7 +139,8 @@
       font-size:14px;
     }
 
-    .controls button{
+    .controls button,
+    .controls select{
       padding:8px 12px;
       background:#f3e2bd;
       border:1px solid var(--border);
@@ -141,7 +151,8 @@
       min-width:110px;
     }
 
-    .controls button:hover{
+    .controls button:hover,
+    .controls select:hover{
       background:#f7e8c9;
     }
 
@@ -383,6 +394,10 @@
   <div id="grid" class="grid"></div>
 
   <div class="controls">
+    <select id="mapSelect" aria-label="Výběr mapy">
+      <option value="1">Mapa 1</option>
+      <option value="2">Mapa 2</option>
+    </select>
     <button id="eraseBtn">Smazat políčko</button>
     <button id="clearSelBtn">Zrušit výběr</button>
     <button id="clearAllBtn">Smazat mapu</button>
@@ -470,7 +485,17 @@ const letterColors = {
 
 const ROWS = 11;
 const COLS = 11;
-const initialA = ["B2","F4","J6","D9","I10"];
+const MAPS = {
+  "1": {
+    mountains: ["B2","F4","J6","D9","I10"],
+    blocked: []
+  },
+  "2": {
+    mountains: ["D4","I3","F7","I10","B10"],
+    blocked: ["B2","C2","J1","J2","G10","F10","F11"]
+  }
+};
+let currentMap = "1";
 const gridEl = document.getElementById("grid");
 
 function getSymbol(letter){
@@ -506,29 +531,75 @@ function createGrid(){
       cell.className="cell";
       cell.dataset.row=r;
       cell.dataset.col=c;
-      const coord = rowLetter + String(c);
+      cell.dataset.coord = rowLetter + String(c);
 
-      if(initialA.includes(coord)){
-        const letter = 'A';
-        cell.dataset.letter = letter;
-        cell.textContent = getSymbol(letter);
-        cell.style.background = letterColors[letter];
-        cell.style.color = "#fff";
-      }
-
-      cell.addEventListener("click",()=>cell.classList.toggle("selected"));
+      cell.addEventListener("click",()=>{
+        if(cell.classList.contains("blocked")) return;
+        cell.classList.toggle("selected");
+      });
       gridEl.appendChild(cell);
     }
   }
 }
 createGrid();
 
+const mapSelect=document.getElementById("mapSelect");
 const eraseBtn=document.getElementById("eraseBtn");
 const clearSelBtn=document.getElementById("clearSelBtn");
 const clearAllBtn=document.getElementById("clearAllBtn");
 
+function resetCell(cell){
+  delete cell.dataset.letter;
+  delete cell.dataset.blocked;
+  cell.textContent = "";
+  cell.style.background = "#fffaf0";
+  cell.style.color = "#000";
+  cell.classList.remove("selected", "blocked");
+  cell.removeAttribute("title");
+  cell.removeAttribute("aria-label");
+}
+
+function getCell(coord){
+  return gridEl.querySelector('.cell[data-coord="'+coord+'"]');
+}
+
+function loadMap(mapId){
+  const preset = MAPS[mapId] || MAPS["1"];
+  currentMap = MAPS[mapId] ? mapId : "1";
+
+  gridEl.querySelectorAll(".cell").forEach(resetCell);
+
+  preset.mountains.forEach(coord=>{
+    const cell = getCell(coord);
+    if(!cell) return;
+    const letter = 'A';
+    cell.dataset.letter = letter;
+    cell.textContent = getSymbol(letter);
+    cell.style.background = letterColors[letter];
+    cell.style.color = "#fff";
+  });
+
+  preset.blocked.forEach(coord=>{
+    const cell = getCell(coord);
+    if(!cell) return;
+    delete cell.dataset.letter;
+    cell.dataset.blocked = "1";
+    cell.textContent = "";
+    cell.style.background = "#000";
+    cell.style.color = "#fff";
+    cell.classList.add("blocked");
+    cell.title = "Propast – " + coord;
+    cell.setAttribute("aria-label", "Propast " + coord);
+  });
+
+  mapSelect.value = currentMap;
+}
+
+mapSelect.addEventListener("change", ()=>loadMap(mapSelect.value));
+loadMap(currentMap);
+
 function applyLetter(letter){
-  const selected=gridEl.querySelectorAll(".cell.selected");
+  const selected=gridEl.querySelectorAll(".cell.selected:not(.blocked)");
   if(selected.length===0) return;
 
   if(letter==="*"){
@@ -567,7 +638,7 @@ document.querySelectorAll(".colorBtn").forEach(btn=>{
 
 /* Tlačítka nad mapou */
 eraseBtn.onclick = ()=>{
-  const selected = gridEl.querySelectorAll(".cell.selected");
+  const selected = gridEl.querySelectorAll(".cell.selected:not(.blocked)");
   selected.forEach(cell=>{
     cell.dataset.letter = "";
     cell.textContent = "";
@@ -584,13 +655,7 @@ clearSelBtn.onclick = ()=>{
 
 clearAllBtn.onclick = ()=>{
   if(!confirm("Smazat celou mapu?")) return;
-  gridEl.querySelectorAll(".cell").forEach(c=>{
-    c.dataset.letter = "";
-    c.textContent = "";
-    c.style.background = "#fffaf0";
-    c.style.color = "#000";
-    c.classList.remove("selected");
-  });
+  loadMap(currentMap);
 };
 
 
